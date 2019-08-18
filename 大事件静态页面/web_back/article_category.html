@@ -1,3 +1,10 @@
+<!--
+ * @Description: In User Settings Edit
+ * @Author: your name
+ * @Date: 2019-08-16 15:28:37
+ * @LastEditTime: 2019-08-18 16:55:02
+ * @LastEditors: Please set LastEditors
+ -->
 <!DOCTYPE html>
 <html lang="en">
 
@@ -35,7 +42,7 @@
                         <td>未分类</td>
                         <td>uncategorized</td>
                         <td class="text-center">
-                            <a href="javascript:editTr({&quot;id&quot;:&quot;1&quot;,&quot;slug&quot;:&quot;uncategorized&quot;,&quot;name&quot;:&quot;未分类&quot;});"
+                            <a href="#"
                                 class="btn btn-info btn-xs">编辑</a>
                             <a href="javascript:deleteTr( 1 );" class="btn btn-danger btn-xs">删除</a>
                         </td>
@@ -74,7 +81,8 @@
                 <tfoot>
                     <tr>
                         <td colspan="3" class="text-center">
-                            <a href="#" class="btn btn-success" data-toggle="modal" data-target="#addModal">新增分类</a>
+                            <!-- 给新增分类加个id xzfl -->
+                            <a href="#" class="btn btn-success" id="xzfl" data-toggle="modal" data-target="#addModal">新增分类</a>
                         </td>
                     </tr>
                 </tfoot>
@@ -92,13 +100,17 @@
                 </div>
                 <div class="modal-body">
                     <form>
+                        <!-- 加一个id -->
+                        <!-- <input type="text" style="display: none" name="" id="recipient-id"> -->
+                        <!-- 隐藏域 特性: 默认就是隐藏的 -->
+                        <input type="hidden" name="id" id="recipient-id">
                         <div class="form-group">
                             <label for="recipient-name" class="control-label">分类名称:</label>
-                            <input type="text" class="form-control" id="recipient-name">
+                            <input type="text" name="name" class="form-control" id="recipient-name">
                         </div>
                         <div class="form-group">
                             <label for="message-text" class="control-label">分类别名:</label>
-                            <input type="text" class="form-control" id="recipient-slug">
+                            <input type="text" name="slug" class="form-control" id="recipient-slug">
                         </div>
                     </form>
                 </div>
@@ -123,12 +135,6 @@
 
 
 
-        $('.category_table').delegate('a', 'click', function () {
-            if ($(this).hasClass('btn-info')) {
-                $('#addModal .modal-title').html('修改分类名称');
-                $('#addModal').modal('show');
-            }
-        })
     </script>
 
     <!-- 准备一个模板 -->
@@ -138,8 +144,8 @@
             <td>{{v.name}}</td>
             <td>{{v.slug}}</td>
             <td class="text-center">
-                <a href="javascript:editTr({&quot;id&quot;:&quot;2&quot;,&quot;slug&quot;:&quot;funny&quot;,&quot;name&quot;:&quot;奇趣事&quot;});"
-                    class="btn btn-info btn-xs">编辑</a>
+                <a href="#"
+                    class="btn btn-info btn-xs" data-id="{{v.id}}">编辑</a>
                 <a href="#" data-id="{{v.id}}" class="btn btn-danger btn-xs btn-delete">删除</a>
             </td>
         </tr>
@@ -168,8 +174,39 @@
             getData();
 
             //需求: 给模态框中的 新增 按钮设置点击事件.完成新增
+             // 给修改 新增按钮添加点击事件 完成修改或新增
             $('#model_add').on('click', function () {
-                //新增逻辑
+                // 因为是同一个模态框 需判断点的是修改还是新增 可用文本 或者btn-success类名区分
+                if($(this).hasClass('btn-success')) {
+                //  有btn-success的是编辑
+                 var cateId=$('#recipient-id').val().trim();
+                 var cateName=$('#recipient-name').val().trim();
+                 var cateSlug=$('#recipient-slug').val().trim();
+                 console.log(cateId,cateName,cateSlug);
+                // jQuery的serialize()方法
+                //  var data=$('form').serialize();
+                // console.log(data);
+                 
+                //  发送ajax
+                $.ajax({
+                    type:'post',
+                    url:'http://localhost:8080/admin/category/edit',
+                    data:{
+                        id:cateId,
+                        name:cateName,
+                        slug:cateSlug
+                    },
+                    // data:data,
+                    success:function(backData){
+                        if(backData.code==200){
+                            getData();
+                        }
+                    }
+                  
+                                    
+                })
+                }else{
+                     //新增逻辑
                 //获取一下用户要新增的 分类名和分类别名.
                 var cateName = $('#recipient-name').val().trim(); //分类名
                 var cateSlug = $('#recipient-slug').val().trim(); //分类别名
@@ -195,6 +232,8 @@
                         }
                     }
                 });
+                }
+               
                 //隐藏模态框
                 $('#addModal').modal('hide');
             });
@@ -228,8 +267,40 @@
                 }
             })
 
+      // 修改编辑模态框的样式 
+        $('tbody').on('click', 'a.btn-info', function () {
+                $('#addModal .modal-title').html('修改分类');
+                $('#model_add').text('修改').addClass('btn-success');
+            // 显示分类名称和分类别名
+            // 可以通过添加id获取id 然后发送ajax请求 但是相对麻烦
+            // 编辑按钮的爸爸是个td td的上一个兄弟和上上个兄弟就是分类别名和分类名称
+            var cateId=$(this).attr('data-id')
+            var cateName=$(this).parent().prev().prev().text().trim();
+            var cateSlug=$(this).parent().prev().text().trim();
+           // console.log(cateId);
+            $('#recipient-name').val(cateName);
+            $('#recipient-slug').val(cateSlug);
+            $('#recipient-id').val(cateId);
+            // 让模态框显示
+            $('#addModal').modal('show');
+        })
+        $('#xzfl').on('click',function(){
+            $('.modal-title').html('新增分类');
+            $('#model_add').text('新增').removeClass('btn-success');
+            $('#recipient-name').val("");
+            $('#recipient-slug').val("");
+        })
 
         });
+       
+        $('#model_add').on('click',function(){
+            // 因为是同一个模态框 需判断点的是修改还是新增 可用文本 或者btn-success类名区分
+            if($(this).hasClass('btn-success')){
+                // 有btn-success类的是修改按钮
+
+
+            }
+        })
     </script>
 </body>
 
